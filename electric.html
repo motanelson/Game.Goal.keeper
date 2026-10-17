@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sparky's 1.5V Circuit Puzzle</title>
+<style>
+  :root {
+    --wire-off: #555;
+    --wire-on: #ffd000;
+    --bg: #1e1e2f;
+    --panel: #2b2b40;
+    --accent: #ff4757;
+  }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 20px;
+    user-select: none;
+  }
+
+  h1 { margin-bottom: 5px; color: #f1c40f; text-shadow: 0 0 10px rgba(241,196,15,0.4); }
+  p.subtitle { margin-top: 0; color: #a4b0be; }
+
+  #game-container {
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    border: 2px solid #3d3d5c;
+  }
+
+  svg {
+    width: 650px;
+    height: 380px;
+  }
+
+  /* Wires */
+  .wire {
+    stroke: var(--wire-off);
+    stroke-width: 5;
+    stroke-linecap: round;
+    transition: stroke 0.25s ease;
+    fill: none;
+  }
+  .wire.hot {
+    stroke: var(--wire-on);
+    filter: drop-shadow(0 0 4px var(--wire-on));
+  }
+  .ground-wire {
+    stroke: #3498db;
+    stroke-width: 5;
+    fill: none;
+  }
+
+  /* Switches (Interactive) */
+  .switch-group {
+    cursor: pointer;
+  }
+  .switch-blade {
+    stroke: #e74c3c;
+    stroke-width: 5;
+    transition: transform 0.2s ease, stroke 0.2s ease;
+    transform-origin: 0px 0px;
+  }
+  .switch-closed .switch-blade {
+    stroke: #2ecc71;
+  }
+  .terminal {
+    fill: #bdc3c7;
+    stroke: #7f8c8d;
+    stroke-width: 2;
+  }
+  .switch-label {
+    fill: #ecf0f1;
+    font-size: 13px;
+    font-weight: bold;
+    pointer-events: none;
+  }
+
+  /* Battery */
+  .battery-body { fill: #2c3e50; stroke: #f39c12; stroke-width: 3; }
+  .battery-terminal { fill: #f1c40f; }
+
+  /* Light Bulb */
+  .bulb-glow {
+    fill: #ffff88;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    filter: drop-shadow(0 0 25px #fffa65);
+  }
+  .bulb-filament {
+    stroke: #7f8c8d;
+    stroke-width: 2;
+    fill: none;
+    transition: stroke 0.2s ease;
+  }
+  .bulb-lit .bulb-glow { opacity: 0.9; }
+  .bulb-lit .bulb-filament { stroke: #fff; filter: drop-shadow(0 0 6px #fff); }
+
+  /* Control Panel / Goals */
+  .mission-box {
+    margin-top: 15px;
+    background: #171724;
+    padding: 12px 25px;
+    border-radius: 10px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .status-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 14px;
+    background: #444;
+    transition: background 0.3s ease;
+  }
+  .status-on { background: #2ecc71; color: #000; box-shadow: 0 0 10px #2ecc71; }
+  .status-short { background: #e74c3c; color: #fff; animation: shake 0.3s infinite; }
+
+  @keyframes shake {
+    0% { transform: translate(1px, 1px); }
+    50% { transform: translate(-2px, -1px); }
+    100% { transform: translate(1px, 1px); }
+  }
+
+  .instructions {
+    max-width: 650px;
+    font-size: 14px;
+    color: #a4b0be;
+    line-height: 1.5;
+    margin-top: 15px;
+  }
+</style>
+</head>
+<body>
+
+<h1>⚡ Sparky’s 1.5V Circuit Lab 💡</h1>
+<p class="subtitle">Click the switches to direct the tiny 1.5V current to the bulb!</p>
+
+<div id="game-container">
+  <svg viewBox="0 0 650 350">
+    <!-- GROUND RETURN WIRE (Common Ground: Bulb Base -> Battery Negative) -->
+    <path class="ground-wire" d="M 570 240 L 570 300 L 50 300 L 50 200" />
+    <!-- Ground Symbols -->
+    <g transform="translate(310, 300)">
+      <line x1="0" y1="0" x2="0" y2="15" stroke="#3498db" stroke-width="4" />
+      <line x1="-15" y1="15" x2="15" y2="15" stroke="#3498db" stroke-width="3" />
+      <line x1="-10" y1="20" x2="10" y2="20" stroke="#3498db" stroke-width="3" />
+      <line x1="-5" y1="25" x2="5" y2="25" stroke="#3498db" stroke-width="3" />
+      <text x="20" y="22" fill="#3498db" font-size="11">COMMON GROUND (-)</text>
+    </g>
+
+    <!-- 1.5V BATTERY -->
+    <g transform="translate(25, 90)">
+      <rect class="battery-terminal" x="15" y="0" width="20" height="10" rx="3" />
+      <rect class="battery-body" x="5" y="10" width="40" height="90" rx="6" />
+      <text x="25" y="60" fill="#f1c40f" font-weight="bold" font-size="14" text-anchor="middle" transform="rotate(-90 25 60)">1.5V AA</text>
+      <text x="25" y="25" fill="#2ecc71" font-weight="bold" font-size="14" text-anchor="middle">+</text>
+      <text x="25" y="95" fill="#e74c3c" font-weight="bold" font-size="16" text-anchor="middle">-</text>
+    </g>
+
+    <!-- WIRES (Segmented for dynamic lighting) -->
+    <!-- Wire 1: Battery (+) to S1 -->
+    <path id="w_source" class="wire hot" d="M 50 90 L 50 70 L 100 70" />
+
+    <!-- Wire: After S1 to Fork -->
+    <path id="w_after_s1" class="wire" d="M 140 70 L 180 70" />
+
+    <!-- Branch A (Top: S2 & S3 in Series) -->
+    <path id="w_fork_top" class="wire" d="M 180 70 L 180 30 L 220 30" />
+    <path id="w_mid_series" class="wire" d="M 260 30 L 320 30" />
+    <path id="w_top_out" class="wire" d="M 360 30 L 400 30 L 400 70" />
+
+    <!-- Branch B (Parallel: S4) -->
+    <path id="w_fork_bot" class="wire" d="M 180 70 L 180 120 L 270 120" />
+    <path id="w_bot_out" class="wire" d="M 310 120 L 400 120 L 400 70" />
+
+    <!-- Wire: Fork Rejoin to S5 -->
+    <path id="w_to_s5" class="wire" d="M 400 70 L 450 70" />
+
+    <!-- Wire: S5 to Light Bulb (+) -->
+    <path id="w_to_bulb" class="wire" d="M 490 70 L 570 70 L 570 170" />
+
+    <!-- Short Circuit Wire (S6 from Fork straight to Ground) -->
+    <path id="w_short_in" class="wire" d="M 180 70 L 180 200 L 270 200" />
+    <path id="w_short_out" class="wire" d="M 310 200 L 360 200 L 360 300" />
+
+    <!-- LIGHT BULB -->
+    <g id="bulb" transform="translate(540, 160)">
+      <circle class="bulb-glow" cx="30" cy="30" r="38" />
+      <circle cx="30" cy="30" r="22" fill="none" stroke="#ddd" stroke-width="2" />
+      <path class="bulb-filament" d="M 23 35 L 28 20 L 32 20 L 37 35" />
+      <!-- Screw Base -->
+      <rect x="22" y="45" width="16" height="15" fill="#95a5a6" rx="2" />
+      <line x1="22" y1="49" x2="38" y2="49" stroke="#7f8c8d" stroke-width="2" />
+      <line x1="22" y1="54" x2="38" y2="54" stroke="#7f8c8d" stroke-width="2" />
+      <circle cx="30" cy="62" r="3" fill="#34495e" />
+    </g>
+
+    <!-- ================= SWITCHES ================= -->
+
+    <!-- S1: Master Switch (Series) -->
+    <g id="sw1" class="switch-group" onclick="toggleSwitch(1)">
+      <circle class="terminal" cx="100" cy="70" r="5" />
+      <circle class="terminal" cx="140" cy="70" r="5" />
+      <line id="blade1" class="switch-blade" x1="100" y1="70" x2="138" y2="50" />
+      <text class="switch-label" x="105" y="45">S1 (Main)</text>
+    </g>
+
+    <!-- S2: Series Branch 1 (Top-Left) -->
+    <g id="sw2" class="switch-group" onclick="toggleSwitch(2)">
+      <circle class="terminal" cx="220" cy="30" r="5" />
+      <circle class="terminal" cx="260" cy="30" r="5" />
+      <line id="blade2" class="switch-blade" x1="220" y1="30" x2="258" y2="10" />
+      <text class="switch-label" x="230" y="15">S2</text>
+    </g>
+
+    <!-- S3: Series Branch 2 (Top-Right) -->
+    <g id="sw3" class="switch-group" onclick="toggleSwitch(3)">
+      <circle class="terminal" cx="320" cy="30" r="5" />
+      <circle class="terminal" cx="360" cy="30" r="5" />
+      <line id="blade3" class="switch-blade" x1="320" y1="30" x2="358" y2="10" />
+      <text class="switch-label" x="330" y="15">S3</text>
+    </g>
+
+    <!-- S4: Parallel Bypass (Middle Branch) -->
+    <g id="sw4" class="switch-group" onclick="toggleSwitch(4)">
+      <circle class="terminal" cx="270" cy="120" r="5" />
+      <circle class="terminal" cx="310" cy="120" r="5" />
+      <line id="blade4" class="switch-blade" x1="270" y1="120" x2="308" y2="100" />
+      <text class="switch-label" x="275" y="100">S4 (Alt)</text>
+    </g>
+
+    <!-- S5: Final Gate (Series) -->
+    <g id="sw5" class="switch-group" onclick="toggleSwitch(5)">
+      <circle class="terminal" cx="450" cy="70" r="5" />
+      <circle class="terminal" cx="490" cy="70" r="5" />
+      <line id="blade5" class="switch-blade" x1="450" y1="70" x2="488" y2="50" />
+      <text class="switch-label" x="455" y="45">S5 (Gate)</text>
+    </g>
+
+    <!-- S6: Danger Short Circuit Switch -->
+    <g id="sw6" class="switch-group" onclick="toggleSwitch(6)">
+      <circle class="terminal" cx="270" cy="200" r="5" fill="#e74c3c" />
+      <circle class="terminal" cx="310" cy="200" r="5" fill="#e74c3c" />
+      <line id="blade6" class="switch-blade" x1="270" y1="200" x2="308" y2="180" />
+      <text class="switch-label" x="250" y="225" fill="#e74c3c">⚠️ Short Circuit!</text>
+    </g>
+  </svg>
+
+  <div class="mission-box">
+    <span>Bulb State:</span>
+    <span id="bulbStatus" class="status-badge">OFF</span>
+    <span id="feedback" style="font-size: 14px; color: #ced6e0;">Circuit is open.</span>
+  </div>
+</div>
+
+<div class="instructions">
+  <h3>🛠️ How the circuit works:</h3>
+  <ul>
+    <li><strong>Common Ground:</strong> The base of the bulb connects straight back to the <strong>(-) battery terminal</strong> along the bottom blue wire.</li>
+    <li><strong>Series Connection:</strong> <strong>S1</strong> and <strong>S5</strong> are in series with the whole system—both must allow current through!</li>
+    <li><strong>Parallel Paths:</strong> Current can flow through either <strong>Path A</strong> (both <em>S2 AND S3</em> closed) OR <strong>Path B</strong> (just <em>S4</em> closed).</li>
+    <li><strong>Watch out:</strong> Don't close the ⚠️ Short Circuit switch when power reaches it, or you'll trip the battery!</li>
+  </ul>
+</div>
+
+<script>
+  // Initial switch states (false = open, true = closed)
+  const switches = {
+    1: false,
+    2: false,
+    3: false,
+    4: false,
+    5: false,
+    6: false
+  };
+
+  const bladeCoords = {
+    1: { open: [100, 70, 138, 50], closed: [100, 70, 140, 70] },
+    2: { open: [220, 30, 258, 10], closed: [220, 30, 260, 30] },
+    3: { open: [320, 30, 358, 10], closed: [320, 30, 360, 30] },
+    4: { open: [270, 120, 308, 100], closed: [270, 120, 310, 120] },
+    5: { open: [450, 70, 488, 50], closed: [450, 70, 490, 70] },
+    6: { open: [270, 200, 308, 180], closed: [270, 200, 310, 200] }
+  };
+
+  function toggleSwitch(id) {
+    switches[id] = !switches[id];
+    
+    // Update graphic blade position
+    const blade = document.getElementById(`blade${id}`);
+    const coords = switches[id] ? bladeCoords[id].closed : bladeCoords[id].open;
+    blade.setAttribute("x1", coords[0]);
+    blade.setAttribute("y1", coords[1]);
+    blade.setAttribute("x2", coords[2]);
+    blade.setAttribute("y2", coords[3]);
+
+    const group = document.getElementById(`sw${id}`);
+    if (switches[id]) {
+      group.classList.add('switch-closed');
+    } else {
+      group.classList.remove('switch-closed');
+    }
+
+    recalculateCircuit();
+  }
+
+  function setWire(id, active) {
+    const el = document.getElementById(id);
+    if (active) el.classList.add('hot');
+    else el.classList.remove('hot');
+  }
+
+  function recalculateCircuit() {
+    // Current leaves battery (+)
+    const sourceHot = true;
+
+    // Node after S1
+    const nodeAfterS1 = sourceHot && switches[1];
+    setWire('w_after_s1', nodeAfterS1);
+    setWire('w_fork_top', nodeAfterS1);
+    setWire('w_fork_bot', nodeAfterS1);
+    setWire('w_short_in', nodeAfterS1);
+
+    // Check Short Circuit first
+    const isShortCircuit = nodeAfterS1 && switches[6];
+    setWire('w_short_out', isShortCircuit);
+
+    // Path A (Top: S2 AND S3 in series)
+    const midSeriesHot = nodeAfterS1 && switches[2];
+    setWire('w_mid_series', midSeriesHot);
+    const topPathComplete = midSeriesHot && switches[3];
+    setWire('w_top_out', topPathComplete);
+
+    // Path B (Bottom: S4 in parallel)
+    const botPathComplete = nodeAfterS1 && switches[4];
+    setWire('w_bot_out', botPathComplete);
+
+    // Node before S5 (Parallel merge)
+    const parallelMerges = (topPathComplete || botPathComplete);
+    setWire('w_to_s5', parallelMerges);
+
+    // Bulb wire
+    const bulbHot = parallelMerges && switches[5] && !isShortCircuit;
+    setWire('w_to_bulb', bulbHot);
+
+    // DOM Elements
+    const bulbEl = document.getElementById('bulb');
+    const statusBadge = document.getElementById('bulbStatus');
+    const feedback = document.getElementById('feedback');
+
+    if (isShortCircuit) {
+      bulbEl.classList.remove('bulb-lit');
+      statusBadge.textContent = "SHORT CIRCUIT!";
+      statusBadge.className = "status-badge status-short";
+      feedback.textContent = "💥 Zap! Direct short to ground! Disconnect S6 immediately!";
+    } else if (bulbHot) {
+      bulbEl.classList.add('bulb-lit');
+      statusBadge.textContent = "LIT! 💡";
+      statusBadge.className = "status-badge status-on";
+      feedback.textContent = "✨ Success! 1.5 volts is powering the bulb to ground!";
+    } else {
+      bulbEl.classList.remove('bulb-lit');
+      statusBadge.textContent = "OFF";
+      statusBadge.className = "status-badge";
+      if (!switches[1]) {
+        feedback.textContent = "Master Switch (S1) is open. Current can't leave.";
+      } else if (!topPathComplete && !botPathComplete) {
+        feedback.textContent = "Both parallel paths are broken! Close (S2 + S3) OR (S4).";
+      } else if (!switches[5]) {
+        feedback.textContent = "Almost there! Gate Switch (S5) is still open.";
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
